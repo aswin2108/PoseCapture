@@ -1,0 +1,117 @@
+[
+  {
+    "id": "sports_jump",
+    "name": "Jump Pose",
+    "category": "sports",
+    "camera": "rear",
+    "difficulty": "medium",
+    "scene_tags": ["sport", "outdoor"],
+    "landmarks": {
+      "nose":            { "x": 0.50, "y": 0.10 },
+      "left_shoulder":   { "x": 0.38, "y": 0.27 },
+      "right_shoulder":  { "x": 0.62, "y": 0.27 },
+      "left_elbow":      { "x": 0.28, "y": 0.38 },
+      "right_elbow":     { "x": 0.72, "y": 0.38 },
+      "left_wrist":      { "x": 0.20, "y": 0.28 },
+      "right_wrist":     { "x": 0.80, "y": 0.28 },
+      "left_hip":        { "x": 0.40, "y": 0.55 },
+      "right_hip":       { "x": 0.60, "y": 0.55 },
+      "left_knee":       { "x": 0.32, "y": 0.68 },
+      "right_knee":      { "x": 0.68, "y": 0.68 },
+      "left_ankle":      { "x": 0.38, "y": 0.80 },
+      "right_ankle":     { "x": 0.62, "y": 0.80 }
+    }
+  },
+  {
+    "id": "sports_sprint_stance",
+    "name": "Sprint Ready",
+    "category": "sports",
+    "camera": "rear",
+    "difficulty": "easy",
+    "scene_tags": ["sport", "running", "outdoor"],
+    "landmarks": {
+      "nose":            { "x": 0.48, "y": 0.10 },
+      "left_shoulder":   { "x": 0.36, "y": 0.27 },
+      "right_shoulder":  { "x": 0.60, "y": 0.25 },
+      "left_elbow":      { "x": 0.28, "y": 0.40 },
+      "right_elbow":     { "x": 0.62, "y": 0.35 },
+      "left_wrist":      { "x": 0.32, "y": 0.55 },
+      "right_wrist":     { "x": 0.54, "y": 0.20 },
+      "left_hip":        { "x": 0.40, "y": 0.55 },
+      "right_hip":       { "x": 0.56, "y": 0.53 },
+      "left_knee":       { "x": 0.35, "y": 0.70 },
+      "right_knee":      { "x": 0.60, "y": 0.73 },
+      "left_ankle":      { "x": 0.32, "y": 0.88 },
+      "right_ankle":     { "x": 0.64, "y": 0.93 }
+    }
+  },
+  {
+    "id": "sports_kick",
+    "name": "Kick",
+    "category": "sports",
+    "camera": "rear",
+    "difficulty": "hard",
+    "scene_tags": ["sport", "soccer", "outdoor"],
+    "landmarks": {
+      "nose":            { "x": 0.50, "y": 0.08 },
+      "left_shoulder":   { "x": 0.38, "y": 0.25 },
+      "right_shoulder":  { "x": 0.62, "y": 0.25 },
+      "left_elbow":      { "x": 0.28, "y": 0.38 },
+      "right_elbow":     { "x": 0.72, "y": 0.38 },
+      "left_wrist":      { "x": 0.20, "y": 0.30 },
+      "right_wrist":     { "x": 0.80, "y": 0.30 },
+      "left_hip":        { "x": 0.42, "y": 0.52 },
+      "right_hip":       { "x": 0.58, "y": 0.52 },
+      "left_knee":       { "x": 0.40, "y": 0.73 },
+      "right_knee":      { "x": 0.65, "y": 0.35 },
+      "left_ankle":      { "x": 0.40, "y": 0.93 },
+      "right_ankle":     { "x": 0.72, "y": 0.20 }
+    }
+  },
+  {
+    "id": "sports_celebrate",
+    "name": "Victory Raise",
+    "category": "sports",
+    "camera": "rear",
+    "difficulty": "easy",
+    "scene_tags": ["sport", "outdoor"],
+    "landmarks": {
+      "nose":            { "x": 0.50, "y": 0.08 },
+      "left_shoulder":   { "x": 0.38, "y": 0.26 },
+      "right_shoulder":  { "x": 0.62, "y": 0.26 },
+      "left_elbow":      { "x": 0.25, "y": 0.15 },
+      "right_elbow":     { "x": 0.75, "y": 0.15 },
+      "left_wrist":      { "x": 0.22, "y": 0.03 },
+      "right_wrist":     { "x": 0.78, "y": 0.03 },
+      "left_hip":        { "x": 0.42, "y": 0.52 },
+      "right_hip":       { "x": 0.58, "y": 0.52 },
+      "left_knee":       { "x": 0.40, "y": 0.72 },
+      "right_knee":      { "x": 0.60, "y": 0.72 },
+      "left_ankle":      { "x": 0.40, "y": 0.93 },
+      "right_ankle":     { "x": 0.60, "y": 0.93 }
+    }
+  },
+  {
+    "id": "sports_stretch",
+    "name": "Side Stretch",
+    "category": "sports",
+    "camera": "rear",
+    "difficulty": "easy",
+    "scene_tags": ["sport", "exercise", "outdoor"],
+    "landmarks": {
+      "nose":            { "x": 0.50, "y": 0.08 },
+      "left_shoulder":   { "x": 0.38, "y": 0.26 },
+      "right_shoulder":  { "x": 0.62, "y": 0.26 },
+      "left_elbow":      { "x": 0.26, "y": 0.14 },
+      "right_elbow":     { "x": 0.68, "y": 0.38 },
+      "left_wrist":      { "x": 0.38, "y": 0.05 },
+      "right_wrist":     { "x": 0.72, "y": 0.52 },
+      "left_hip":        { "x": 0.43, "y": 0.53 },
+      "right_hip":       { "x": 0.57, "y": 0.51 },
+      "left_knee":       { "x": 0.40, "y": 0.73 },
+      "right_knee":      { "x": 0.60, "y": 0.73 },
+      "left_ankle":      { "x": 0.40, "y": 0.93 },
+      "right_ankle":     { "x": 0.60, "y": 0.93 }
+    }
+  }
+]

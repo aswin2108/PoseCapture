@@ -1,0 +1,117 @@
+[
+  {
+    "id": "fashion_hand_hip",
+    "name": "Hand on Hip",
+    "category": "fashion",
+    "camera": "both",
+    "difficulty": "easy",
+    "scene_tags": ["portrait", "fashion", "outdoor"],
+    "landmarks": {
+      "nose":            { "x": 0.50, "y": 0.08 },
+      "left_shoulder":   { "x": 0.38, "y": 0.25 },
+      "right_shoulder":  { "x": 0.62, "y": 0.25 },
+      "left_elbow":      { "x": 0.33, "y": 0.42 },
+      "right_elbow":     { "x": 0.62, "y": 0.35 },
+      "left_wrist":      { "x": 0.30, "y": 0.58 },
+      "right_wrist":     { "x": 0.58, "y": 0.50 },
+      "left_hip":        { "x": 0.42, "y": 0.52 },
+      "right_hip":       { "x": 0.58, "y": 0.52 },
+      "left_knee":       { "x": 0.40, "y": 0.72 },
+      "right_knee":      { "x": 0.60, "y": 0.72 },
+      "left_ankle":      { "x": 0.40, "y": 0.93 },
+      "right_ankle":     { "x": 0.60, "y": 0.93 }
+    }
+  },
+  {
+    "id": "fashion_over_shoulder",
+    "name": "Over-Shoulder Look",
+    "category": "fashion",
+    "camera": "both",
+    "difficulty": "medium",
+    "scene_tags": ["portrait", "fashion"],
+    "landmarks": {
+      "nose":            { "x": 0.55, "y": 0.10 },
+      "left_shoulder":   { "x": 0.36, "y": 0.26 },
+      "right_shoulder":  { "x": 0.62, "y": 0.24 },
+      "left_elbow":      { "x": 0.32, "y": 0.42 },
+      "right_elbow":     { "x": 0.66, "y": 0.40 },
+      "left_wrist":      { "x": 0.28, "y": 0.57 },
+      "right_wrist":     { "x": 0.68, "y": 0.55 },
+      "left_hip":        { "x": 0.40, "y": 0.53 },
+      "right_hip":       { "x": 0.58, "y": 0.51 },
+      "left_knee":       { "x": 0.39, "y": 0.73 },
+      "right_knee":      { "x": 0.58, "y": 0.72 },
+      "left_ankle":      { "x": 0.38, "y": 0.93 },
+      "right_ankle":     { "x": 0.58, "y": 0.93 }
+    }
+  },
+  {
+    "id": "fashion_power_stance",
+    "name": "Power Stance",
+    "category": "fashion",
+    "camera": "both",
+    "difficulty": "easy",
+    "scene_tags": ["fashion", "portrait", "outdoor"],
+    "landmarks": {
+      "nose":            { "x": 0.50, "y": 0.08 },
+      "left_shoulder":   { "x": 0.36, "y": 0.25 },
+      "right_shoulder":  { "x": 0.64, "y": 0.25 },
+      "left_elbow":      { "x": 0.28, "y": 0.40 },
+      "right_elbow":     { "x": 0.72, "y": 0.40 },
+      "left_wrist":      { "x": 0.22, "y": 0.55 },
+      "right_wrist":     { "x": 0.78, "y": 0.55 },
+      "left_hip":        { "x": 0.40, "y": 0.52 },
+      "right_hip":       { "x": 0.60, "y": 0.52 },
+      "left_knee":       { "x": 0.35, "y": 0.70 },
+      "right_knee":      { "x": 0.65, "y": 0.70 },
+      "left_ankle":      { "x": 0.30, "y": 0.93 },
+      "right_ankle":     { "x": 0.70, "y": 0.93 }
+    }
+  },
+  {
+    "id": "fashion_s_curve",
+    "name": "S-Curve",
+    "category": "fashion",
+    "camera": "both",
+    "difficulty": "medium",
+    "scene_tags": ["fashion", "portrait"],
+    "landmarks": {
+      "nose":            { "x": 0.48, "y": 0.08 },
+      "left_shoulder":   { "x": 0.40, "y": 0.26 },
+      "right_shoulder":  { "x": 0.62, "y": 0.24 },
+      "left_elbow":      { "x": 0.34, "y": 0.42 },
+      "right_elbow":     { "x": 0.66, "y": 0.38 },
+      "left_wrist":      { "x": 0.32, "y": 0.58 },
+      "right_wrist":     { "x": 0.68, "y": 0.53 },
+      "left_hip":        { "x": 0.44, "y": 0.53 },
+      "right_hip":       { "x": 0.56, "y": 0.51 },
+      "left_knee":       { "x": 0.42, "y": 0.73 },
+      "right_knee":      { "x": 0.58, "y": 0.70 },
+      "left_ankle":      { "x": 0.44, "y": 0.93 },
+      "right_ankle":     { "x": 0.56, "y": 0.88 }
+    }
+  },
+  {
+    "id": "fashion_seated_elegant",
+    "name": "Elegant Seated",
+    "category": "fashion",
+    "camera": "both",
+    "difficulty": "medium",
+    "scene_tags": ["portrait", "fashion", "indoor"],
+    "landmarks": {
+      "nose":            { "x": 0.50, "y": 0.10 },
+      "left_shoulder":   { "x": 0.38, "y": 0.28 },
+      "right_shoulder":  { "x": 0.62, "y": 0.28 },
+      "left_elbow":      { "x": 0.30, "y": 0.43 },
+      "right_elbow":     { "x": 0.65, "y": 0.40 },
+      "left_wrist":      { "x": 0.28, "y": 0.58 },
+      "right_wrist":     { "x": 0.62, "y": 0.55 },
+      "left_hip":        { "x": 0.40, "y": 0.60 },
+      "right_hip":       { "x": 0.60, "y": 0.60 },
+      "left_knee":       { "x": 0.38, "y": 0.78 },
+      "right_knee":      { "x": 0.62, "y": 0.75 },
+      "left_ankle":      { "x": 0.35, "y": 0.93 },
+      "right_ankle":     { "x": 0.65, "y": 0.93 }
+    }
+  }
+]

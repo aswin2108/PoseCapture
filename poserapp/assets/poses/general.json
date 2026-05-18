@@ -1,0 +1,25 @@
+[
+  {
+    "id": "general_neutral_stand",
+    "name": "Neutral Standing",
+    "category": "casual",
+    "camera": "both",
+    "difficulty": "easy",
+    "scene_tags": [],
+    "landmarks": {
+      "nose":            { "x": 0.50, "y": 0.08 },
+      "left_shoulder":   { "x": 0.38, "y": 0.25 },
+      "right_shoulder":  { "x": 0.62, "y": 0.25 },
+      "left_elbow":      { "x": 0.34, "y": 0.42 },
+      "right_elbow":     { "x": 0.66, "y": 0.42 },
+      "left_wrist":      { "x": 0.32, "y": 0.58 },
+      "right_wrist":     { "x": 0.68, "y": 0.58 },
+      "left_hip":        { "x": 0.42, "y": 0.52 },
+      "right_hip":       { "x": 0.58, "y": 0.52 },
+      "left_knee":       { "x": 0.41, "y": 0.72 },
+      "right_knee":      { "x": 0.59, "y": 0.72 },
+      "left_ankle":      { "x": 0.41, "y": 0.93 },
+      "right_ankle":     { "x": 0.59, "y": 0.93 }
+    }
+  }
+]

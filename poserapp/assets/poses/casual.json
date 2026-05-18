@@ -1,0 +1,117 @@
+[
+  {
+    "id": "casual_relaxed_stand",
+    "name": "Relaxed Standing",
+    "category": "casual",
+    "camera": "both",
+    "difficulty": "easy",
+    "scene_tags": ["outdoor", "indoor", "street"],
+    "landmarks": {
+      "nose":            { "x": 0.50, "y": 0.08 },
+      "left_shoulder":   { "x": 0.38, "y": 0.25 },
+      "right_shoulder":  { "x": 0.62, "y": 0.25 },
+      "left_elbow":      { "x": 0.33, "y": 0.42 },
+      "right_elbow":     { "x": 0.67, "y": 0.42 },
+      "left_wrist":      { "x": 0.30, "y": 0.58 },
+      "right_wrist":     { "x": 0.70, "y": 0.58 },
+      "left_hip":        { "x": 0.42, "y": 0.52 },
+      "right_hip":       { "x": 0.58, "y": 0.52 },
+      "left_knee":       { "x": 0.40, "y": 0.72 },
+      "right_knee":      { "x": 0.60, "y": 0.72 },
+      "left_ankle":      { "x": 0.40, "y": 0.93 },
+      "right_ankle":     { "x": 0.60, "y": 0.93 }
+    }
+  },
+  {
+    "id": "casual_lean_wall",
+    "name": "Leaning Back",
+    "category": "casual",
+    "camera": "both",
+    "difficulty": "easy",
+    "scene_tags": ["outdoor", "street", "indoor"],
+    "landmarks": {
+      "nose":            { "x": 0.50, "y": 0.08 },
+      "left_shoulder":   { "x": 0.40, "y": 0.25 },
+      "right_shoulder":  { "x": 0.60, "y": 0.25 },
+      "left_elbow":      { "x": 0.28, "y": 0.40 },
+      "right_elbow":     { "x": 0.65, "y": 0.40 },
+      "left_wrist":      { "x": 0.20, "y": 0.55 },
+      "right_wrist":     { "x": 0.65, "y": 0.52 },
+      "left_hip":        { "x": 0.44, "y": 0.53 },
+      "right_hip":       { "x": 0.56, "y": 0.53 },
+      "left_knee":       { "x": 0.42, "y": 0.73 },
+      "right_knee":      { "x": 0.62, "y": 0.73 },
+      "left_ankle":      { "x": 0.45, "y": 0.93 },
+      "right_ankle":     { "x": 0.65, "y": 0.92 }
+    }
+  },
+  {
+    "id": "casual_hand_pocket",
+    "name": "Hand in Pocket",
+    "category": "casual",
+    "camera": "both",
+    "difficulty": "easy",
+    "scene_tags": ["outdoor", "street"],
+    "landmarks": {
+      "nose":            { "x": 0.50, "y": 0.08 },
+      "left_shoulder":   { "x": 0.38, "y": 0.25 },
+      "right_shoulder":  { "x": 0.62, "y": 0.25 },
+      "left_elbow":      { "x": 0.35, "y": 0.42 },
+      "right_elbow":     { "x": 0.64, "y": 0.39 },
+      "left_wrist":      { "x": 0.32, "y": 0.58 },
+      "right_wrist":     { "x": 0.59, "y": 0.52 },
+      "left_hip":        { "x": 0.42, "y": 0.52 },
+      "right_hip":       { "x": 0.58, "y": 0.52 },
+      "left_knee":       { "x": 0.40, "y": 0.72 },
+      "right_knee":      { "x": 0.60, "y": 0.72 },
+      "left_ankle":      { "x": 0.40, "y": 0.93 },
+      "right_ankle":     { "x": 0.60, "y": 0.93 }
+    }
+  },
+  {
+    "id": "casual_arms_crossed",
+    "name": "Arms Crossed",
+    "category": "casual",
+    "camera": "both",
+    "difficulty": "easy",
+    "scene_tags": ["outdoor", "indoor"],
+    "landmarks": {
+      "nose":            { "x": 0.50, "y": 0.08 },
+      "left_shoulder":   { "x": 0.38, "y": 0.25 },
+      "right_shoulder":  { "x": 0.62, "y": 0.25 },
+      "left_elbow":      { "x": 0.55, "y": 0.35 },
+      "right_elbow":     { "x": 0.45, "y": 0.35 },
+      "left_wrist":      { "x": 0.65, "y": 0.30 },
+      "right_wrist":     { "x": 0.35, "y": 0.30 },
+      "left_hip":        { "x": 0.42, "y": 0.52 },
+      "right_hip":       { "x": 0.58, "y": 0.52 },
+      "left_knee":       { "x": 0.40, "y": 0.72 },
+      "right_knee":      { "x": 0.60, "y": 0.72 },
+      "left_ankle":      { "x": 0.40, "y": 0.93 },
+      "right_ankle":     { "x": 0.60, "y": 0.93 }
+    }
+  },
+  {
+    "id": "casual_walking",
+    "name": "Mid-Walk",
+    "category": "casual",
+    "camera": "both",
+    "difficulty": "medium",
+    "scene_tags": ["outdoor", "street", "park"],
+    "landmarks": {
+      "nose":            { "x": 0.50, "y": 0.08 },
+      "left_shoulder":   { "x": 0.40, "y": 0.25 },
+      "right_shoulder":  { "x": 0.60, "y": 0.25 },
+      "left_elbow":      { "x": 0.32, "y": 0.40 },
+      "right_elbow":     { "x": 0.68, "y": 0.40 },
+      "left_wrist":      { "x": 0.35, "y": 0.55 },
+      "right_wrist":     { "x": 0.65, "y": 0.55 },
+      "left_hip":        { "x": 0.42, "y": 0.52 },
+      "right_hip":       { "x": 0.58, "y": 0.52 },
+      "left_knee":       { "x": 0.38, "y": 0.68 },
+      "right_knee":      { "x": 0.62, "y": 0.76 },
+      "left_ankle":      { "x": 0.36, "y": 0.88 },
+      "right_ankle":     { "x": 0.64, "y": 0.93 }
+    }
+  }
+]

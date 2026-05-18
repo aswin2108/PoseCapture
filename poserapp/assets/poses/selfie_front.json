@@ -1,0 +1,97 @@
+[
+  {
+    "id": "selfie_classic",
+    "name": "Classic Selfie",
+    "category": "selfie",
+    "camera": "front",
+    "difficulty": "easy",
+    "scene_tags": ["portrait", "face"],
+    "landmarks": {
+      "nose":            { "x": 0.50, "y": 0.25 },
+      "left_shoulder":   { "x": 0.30, "y": 0.55 },
+      "right_shoulder":  { "x": 0.70, "y": 0.55 },
+      "left_elbow":      { "x": 0.18, "y": 0.75 },
+      "right_elbow":     { "x": 0.82, "y": 0.75 },
+      "left_wrist":      { "x": 0.22, "y": 0.90 },
+      "right_wrist":     { "x": 0.78, "y": 0.90 },
+      "left_hip":        { "x": 0.35, "y": 0.95 },
+      "right_hip":       { "x": 0.65, "y": 0.95 }
+    }
+  },
+  {
+    "id": "selfie_peace",
+    "name": "Peace Sign",
+    "category": "selfie",
+    "camera": "front",
+    "difficulty": "easy",
+    "scene_tags": ["portrait", "face"],
+    "landmarks": {
+      "nose":            { "x": 0.45, "y": 0.25 },
+      "left_shoulder":   { "x": 0.28, "y": 0.55 },
+      "right_shoulder":  { "x": 0.68, "y": 0.55 },
+      "left_elbow":      { "x": 0.15, "y": 0.40 },
+      "right_elbow":     { "x": 0.80, "y": 0.75 },
+      "left_wrist":      { "x": 0.20, "y": 0.25 },
+      "right_wrist":     { "x": 0.82, "y": 0.90 },
+      "left_hip":        { "x": 0.33, "y": 0.95 },
+      "right_hip":       { "x": 0.65, "y": 0.95 }
+    }
+  },
+  {
+    "id": "selfie_chin_tilt",
+    "name": "Chin Tilt",
+    "category": "selfie",
+    "camera": "front",
+    "difficulty": "easy",
+    "scene_tags": ["portrait", "face"],
+    "landmarks": {
+      "nose":            { "x": 0.52, "y": 0.30 },
+      "left_shoulder":   { "x": 0.30, "y": 0.57 },
+      "right_shoulder":  { "x": 0.70, "y": 0.54 },
+      "left_elbow":      { "x": 0.18, "y": 0.77 },
+      "right_elbow":     { "x": 0.82, "y": 0.74 },
+      "left_wrist":      { "x": 0.22, "y": 0.92 },
+      "right_wrist":     { "x": 0.78, "y": 0.90 },
+      "left_hip":        { "x": 0.35, "y": 0.97 },
+      "right_hip":       { "x": 0.65, "y": 0.95 }
+    }
+  },
+  {
+    "id": "selfie_duck",
+    "name": "Duck Face",
+    "category": "selfie",
+    "camera": "front",
+    "difficulty": "easy",
+    "scene_tags": ["portrait", "face"],
+    "landmarks": {
+      "nose":            { "x": 0.48, "y": 0.28 },
+      "left_shoulder":   { "x": 0.30, "y": 0.56 },
+      "right_shoulder":  { "x": 0.68, "y": 0.55 },
+      "left_elbow":      { "x": 0.18, "y": 0.75 },
+      "right_elbow":     { "x": 0.80, "y": 0.75 },
+      "left_wrist":      { "x": 0.20, "y": 0.90 },
+      "right_wrist":     { "x": 0.80, "y": 0.90 },
+      "left_hip":        { "x": 0.34, "y": 0.95 },
+      "right_hip":       { "x": 0.64, "y": 0.95 }
+    }
+  },
+  {
+    "id": "selfie_over_shoulder",
+    "name": "Over Shoulder",
+    "category": "selfie",
+    "camera": "front",
+    "difficulty": "medium",
+    "scene_tags": ["portrait", "face"],
+    "landmarks": {
+      "nose":            { "x": 0.58, "y": 0.26 },
+      "left_shoulder":   { "x": 0.32, "y": 0.54 },
+      "right_shoulder":  { "x": 0.72, "y": 0.52 },
+      "left_elbow":      { "x": 0.20, "y": 0.74 },
+      "right_elbow":     { "x": 0.85, "y": 0.72 },
+      "left_wrist":      { "x": 0.25, "y": 0.89 },
+      "right_wrist":     { "x": 0.87, "y": 0.88 },
+      "left_hip":        { "x": 0.36, "y": 0.95 },
+      "right_hip":       { "x": 0.68, "y": 0.95 }
+    }
+  }
+]
