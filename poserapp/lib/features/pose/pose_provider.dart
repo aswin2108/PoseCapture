@@ -97,17 +97,3 @@ final poseScoreProvider = Provider<double>((ref) {
   return PoseMatcher.score(user, pose.landmarks);
 });
 
-// ---------------------------------------------------------------------------
-// Auto-capture — off by default; toggled by the user
-// ---------------------------------------------------------------------------
-
-final autoCaptureEnabledProvider =
-    NotifierProvider<_AutoCaptureEnabledNotifier, bool>(
-  _AutoCaptureEnabledNotifier.new,
-);
-
-class _AutoCaptureEnabledNotifier extends Notifier<bool> {
-  @override
-  bool build() => false;
-  void toggle() => state = !state;
-}

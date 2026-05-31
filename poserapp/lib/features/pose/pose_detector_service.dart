@@ -12,6 +12,8 @@ import 'pose_template.dart';
 /// Maps ML Kit landmark types to our JSON key names.
 const _mlTypeToName = {
   mlkit.PoseLandmarkType.nose:          'nose',
+  mlkit.PoseLandmarkType.leftEar:       'left_ear',
+  mlkit.PoseLandmarkType.rightEar:      'right_ear',
   mlkit.PoseLandmarkType.leftShoulder:  'left_shoulder',
   mlkit.PoseLandmarkType.rightShoulder: 'right_shoulder',
   mlkit.PoseLandmarkType.leftElbow:     'left_elbow',
@@ -170,23 +172,25 @@ class PoseDetectorService {
     double nx, ny;
 
     if (Platform.isAndroid) {
-      switch (sensorOrientation) {
-        case 90:
-          nx = py / imgH;
-          ny = 1.0 - px / imgW;
-        case 270:
-          nx = 1.0 - py / imgH;
-          ny = px / imgW;
-        default:
-          nx = px / imgW;
-          ny = py / imgH;
+      // ML Kit processes the image after rotating it by sensorOrientation.
+      // Therefore, the coordinates returned are ALREADY in the rotated space.
+      final bool isRotated = sensorOrientation == 90 || sensorOrientation == 270;
+      final double rotatedW = isRotated ? imgH : imgW;
+      final double rotatedH = isRotated ? imgW : imgH;
+
+      nx = px / rotatedW;
+      ny = py / rotatedH;
+      
+      if (lensDirection == CameraLensDirection.front) {
+        nx = 1.0 - nx;
       }
-      if (lensDirection == CameraLensDirection.front) nx = 1.0 - nx;
     } else {
-      // iOS: image is already in display orientation
+      // iOS: camera plugin delivers the image ALREADY in display orientation.
       nx = px / imgW;
       ny = py / imgH;
-      if (lensDirection == CameraLensDirection.front) nx = 1.0 - nx;
+      if (lensDirection == CameraLensDirection.front) {
+        nx = 1.0 - nx;
+      }
     }
 
     return PoseLandmark(x: nx.clamp(0.0, 1.0), y: ny.clamp(0.0, 1.0));

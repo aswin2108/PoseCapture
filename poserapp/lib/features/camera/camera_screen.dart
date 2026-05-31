@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math' show pi;
+import 'dart:math' show pi, sqrt;
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_drawing/path_drawing.dart';
 
 import 'camera_provider.dart';
 import 'focus_indicator.dart';
@@ -13,7 +15,6 @@ import '../pose/category_selector.dart';
 import '../pose/pose_carousel.dart';
 import '../pose/pose_overlay_painter.dart';
 import '../pose/pose_provider.dart';
-import '../pose/pose_silhouette.dart';
 import '../pose/pose_template.dart';
 import '../settings/settings_provider.dart';
 import '../settings/settings_sheet.dart';
@@ -114,11 +115,7 @@ class _CameraViewState extends ConsumerState<_CameraView>
   bool _showZoomLabel = false;
   Timer? _zoomLabelTimer;
 
-  // Auto-capture countdown
-  static const _kStartThreshold = 0.82;
-  static const _kCancelThreshold = 0.72;
-  int? _countdownValue;
-  Timer? _countdownTimer;
+
 
   @override
   void initState() {
@@ -141,7 +138,6 @@ class _CameraViewState extends ConsumerState<_CameraView>
   void didUpdateWidget(_CameraView old) {
     super.didUpdateWidget(old);
     if (old.controller != widget.controller) {
-      _cancelCountdown();
       _focusTimer?.cancel();
       _zoomLabelTimer?.cancel();
       setState(() {
@@ -160,7 +156,6 @@ class _CameraViewState extends ConsumerState<_CameraView>
     _focusController.dispose();
     _focusTimer?.cancel();
     _zoomLabelTimer?.cancel();
-    _countdownTimer?.cancel();
     super.dispose();
   }
 
@@ -256,38 +251,6 @@ class _CameraViewState extends ConsumerState<_CameraView>
     });
   }
 
-  // --- Auto-capture countdown ---
-
-  void _startCountdown() {
-    if (_countdownValue != null) return;
-    final duration = ref.read(countdownDurationProvider);
-    setState(() => _countdownValue = duration);
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) { timer.cancel(); return; }
-      // _countdownValue can be null if _cancelCountdown() ran between the
-      // timer firing and this callback executing — Dart's event queue does
-      // not remove already-queued callbacks on cancel(). Guard here to
-      // prevent a phantom capture after the countdown was cancelled.
-      final current = _countdownValue;
-      if (current == null) { timer.cancel(); return; }
-      final next = current - 1;
-      if (next <= 0) {
-        timer.cancel();
-        _countdownTimer = null;
-        setState(() => _countdownValue = null);
-        ref.read(cameraControllerProvider.notifier).capture();
-      } else {
-        setState(() => _countdownValue = next);
-      }
-    });
-  }
-
-  void _cancelCountdown() {
-    if (_countdownValue == null) return;
-    _countdownTimer?.cancel();
-    _countdownTimer = null;
-    if (mounted) setState(() => _countdownValue = null);
-  }
 
   // --- Camera flip ---
 
@@ -300,21 +263,7 @@ class _CameraViewState extends ConsumerState<_CameraView>
   Widget build(BuildContext context) {
     final lastPhoto = ref.watch(lastPhotoProvider);
 
-    // Cancel countdown when the user disables auto-capture mid-flight.
-    ref.listen(autoCaptureEnabledProvider, (_, enabled) {
-      if (!enabled) _cancelCountdown();
-    });
 
-    // Drive the countdown based on pose score with hysteresis to avoid
-    // flickering near the threshold.
-    ref.listen(poseScoreProvider, (_, score) {
-      if (!ref.read(autoCaptureEnabledProvider)) return;
-      if (score >= _kStartThreshold) {
-        _startCountdown();
-      } else if (score < _kCancelThreshold) {
-        _cancelCountdown();
-      }
-    });
 
     return Stack(
       fit: StackFit.expand,
@@ -333,7 +282,17 @@ class _CameraViewState extends ConsumerState<_CameraView>
           ),
         ),
         // Pose skeleton overlay (reference ghost + user skeleton)
-        RepaintBoundary(child: const _PoseOverlay()),
+        ValueListenableBuilder<CameraValue>(
+          valueListenable: widget.controller,
+          builder: (context, value, child) {
+            return RepaintBoundary(
+              child: _PoseOverlay(
+                deviceOrientation: value.deviceOrientation,
+                previewSize: value.previewSize,
+              ),
+            );
+          },
+        ),
         // Focus ring
         if (_focusPoint != null)
           FocusRing(
@@ -341,9 +300,6 @@ class _CameraViewState extends ConsumerState<_CameraView>
             visible: _focusVisible,
             scaleAnimation: _focusScale,
           ),
-        // Auto-capture countdown number
-        if (_countdownValue != null)
-          _CountdownOverlay(value: _countdownValue!),
         // Zoom badge floats above the bottom panel — fades in/out
         Positioned(
           bottom: 300,
@@ -365,6 +321,7 @@ class _CameraViewState extends ConsumerState<_CameraView>
   Widget _buildPreview() {
     final previewSize = widget.controller.value.previewSize;
     if (previewSize == null) return const SizedBox.shrink();
+    
     return SizedBox.expand(
       child: FittedBox(
         fit: BoxFit.cover,
@@ -449,11 +406,10 @@ class _CameraViewState extends ConsumerState<_CameraView>
                     _LastPhotoThumbnail(path: lastPhoto),
                     _CaptureButton(
                       onTap: () {
-                        _cancelCountdown();
                         ref.read(cameraControllerProvider.notifier).capture();
                       },
                     ),
-                    const _AutoCaptureToggle(),
+                    const SizedBox(width: 56), // Placeholder for balance
                   ],
                 ),
               ),
@@ -540,22 +496,34 @@ class _CaptureButtonState extends State<_CaptureButton>
 // ---------------------------------------------------------------------------
 
 class _PoseOverlay extends ConsumerStatefulWidget {
-  const _PoseOverlay();
+  final DeviceOrientation deviceOrientation;
+  final Size? previewSize;
+  const _PoseOverlay({required this.deviceOrientation, this.previewSize});
 
   @override
   ConsumerState<_PoseOverlay> createState() => _PoseOverlayState();
 }
 
-class _PoseOverlayState extends ConsumerState<_PoseOverlay> {
-  Path? _cachedNormalizedSilhouette;
+class _PoseOverlayState extends ConsumerState<_PoseOverlay> with SingleTickerProviderStateMixin {
+  Path? _baseSilhouettePath;
   PoseTemplate? _prevReferencePose;
-  
-  // Smoothing state to prevent jitter
-  double? _smoothScale;
-  double? _smoothTx;
-  double? _smoothTy;
-  Matrix4? _transform;
-  Map<String, PoseLandmark>? _prevUserLandmarks;
+  late AnimationController _drawController;
+  Map<String, PoseLandmark>? _smoothedUserLandmarks;
+
+  @override
+  void initState() {
+    super.initState();
+    _drawController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+  }
+
+  @override
+  void dispose() {
+    _drawController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -563,59 +531,266 @@ class _PoseOverlayState extends ConsumerState<_PoseOverlay> {
     final referencePose = ref.watch(activePoseProvider);
     final score = ref.watch(poseScoreProvider);
     final overlayOpacity = ref.watch(overlayOpacityProvider);
+    final screenSize = MediaQuery.of(context).size;
 
-    if (!identical(referencePose, _prevReferencePose)) {
-      _prevReferencePose = referencePose;
-      _cachedNormalizedSilhouette = referencePose != null
-          ? PoseSilhouette.buildNormalizedSilhouette(referencePose.landmarks)
-          : null;
+    // Determine rotation angle from device orientation
+    double angle = 0.0;
+    if (widget.deviceOrientation == DeviceOrientation.landscapeLeft) {
+      angle = pi / 2; // 90 degrees
+    } else if (widget.deviceOrientation == DeviceOrientation.landscapeRight) {
+      angle = -pi / 2; // -90 degrees
+    } else if (widget.deviceOrientation == DeviceOrientation.portraitDown) {
+      angle = pi; // 180 degrees
     }
 
-    if (!identical(userLandmarks, _prevUserLandmarks) ||
-        !identical(referencePose, _prevReferencePose)) {
-      _prevUserLandmarks = userLandmarks;
-      
-      final rawMatrix = referencePose != null
-          ? _getAdaptationMatrix(referencePose.landmarks, userLandmarks)
-          : null;
-          
-      if (rawMatrix != null) {
-        // Extract scale and translation from the raw matrix
-        final s = rawMatrix.storage[0];
-        final tx = rawMatrix.storage[12];
-        final ty = rawMatrix.storage[13];
+    // 1. Update Base SVG Path if template changes
+    if (referencePose != _prevReferencePose) {
+      _prevReferencePose = referencePose;
+      _baseSilhouettePath = null;
+      _drawController.reset();
 
-        // Apply low-pass filter (Exponential Moving Average)
-        if (_smoothScale == null) {
-          // First frame lock
-          _smoothScale = s;
-          _smoothTx = tx;
-          _smoothTy = ty;
+      if (referencePose != null && referencePose.svgPath.isNotEmpty) {
+        try {
+          _baseSilhouettePath = parseSvgPathData(referencePose.svgPath);
+          _drawController.forward(from: 0.0);
+        } catch (e) {
+          debugPrint('Failed to parse SVG path: $e');
+        }
+      }
+    }
+
+    // 2. Smooth User Landmarks
+    if (userLandmarks != null && userLandmarks.isNotEmpty) {
+      if (_smoothedUserLandmarks == null || _smoothedUserLandmarks!.isEmpty) {
+        _smoothedUserLandmarks = Map.from(userLandmarks);
+      } else {
+        final Map<String, PoseLandmark> next = {};
+        for (final name in userLandmarks.keys) {
+          final currentVal = userLandmarks[name]!;
+          final prevVal = _smoothedUserLandmarks![name];
+          if (prevVal != null) {
+            const alpha = 0.15;
+            next[name] = PoseLandmark(
+              x: prevVal.x * (1.0 - alpha) + currentVal.x * alpha,
+              y: prevVal.y * (1.0 - alpha) + currentVal.y * alpha,
+            );
+          } else {
+            next[name] = currentVal;
+          }
+        }
+        _smoothedUserLandmarks = next;
+      }
+    } else {
+      _smoothedUserLandmarks = null;
+    }
+
+    // 3. Calculate Transform to Track User
+    Matrix4 transform = Matrix4.identity();
+    if (_baseSilhouettePath != null && referencePose != null) {
+      // Parse viewBox e.g. "0 0 100 100"
+      final vbParts = referencePose.svgViewBox.split(' ').map(double.tryParse).toList();
+      double vbW = 100;
+      double vbH = 100;
+      if (vbParts.length == 4 && vbParts[2] != null && vbParts[3] != null) {
+        vbW = vbParts[2]!;
+        vbH = vbParts[3]!;
+      }
+
+      bool tracksUser = false;
+      if (_smoothedUserLandmarks != null && widget.previewSize != null) {
+        // Calculate BoxFit.cover mapping from preview to screen space
+        final double previewW = widget.previewSize!.height; // swapped for portrait
+        final double previewH = widget.previewSize!.width;
+        final double screenRatio = screenSize.width / screenSize.height;
+        final double previewRatio = previewW / previewH;
+
+        double scaleX, scaleY, offsetX, offsetY;
+        if (previewRatio > screenRatio) {
+          scaleY = screenSize.height;
+          scaleX = previewW * (screenSize.height / previewH);
+          offsetX = -(scaleX - screenSize.width) / 2.0;
+          offsetY = 0;
         } else {
-          // Slow glide towards target (0.1 means 90% stays put, 10% moves to target)
-          // This makes the outline "stay still where it's supposed to" and absorb jitter
-          _smoothScale = _smoothScale! * 0.90 + s * 0.10;
-          _smoothTx = _smoothTx! * 0.90 + tx * 0.10;
-          _smoothTy = _smoothTy! * 0.90 + ty * 0.10;
+          scaleX = screenSize.width;
+          scaleY = previewH * (screenSize.width / previewW);
+          offsetX = 0;
+          offsetY = -(scaleY - screenSize.height) / 2.0;
         }
 
-        _transform = Matrix4.identity()
-          ..translate(_smoothTx!, _smoothTy!)
-          ..scale(_smoothScale!, _smoothScale!);
-      } else {
-        _transform = null;
-        _smoothScale = null;
+        Offset mapLm(PoseLandmark lm) {
+          return Offset(lm.x * scaleX + offsetX, lm.y * scaleY + offsetY);
+        }
+
+        // ---------------------------------------------------------------
+        // Tracking Logic: Try Torso first, then fall back to Shoulders,
+        // then Hips, then Face (Ears/Nose).
+        // ---------------------------------------------------------------
+        final tLS = referencePose.landmarks['left_shoulder'];
+        final tRS = referencePose.landmarks['right_shoulder'];
+        final tLH = referencePose.landmarks['left_hip'];
+        final tRH = referencePose.landmarks['right_hip'];
+        final tLE = referencePose.landmarks['left_ear'];
+        final tRE = referencePose.landmarks['right_ear'];
+        final tNose = referencePose.landmarks['nose'];
+
+        final uLS = _smoothedUserLandmarks!['left_shoulder'];
+        final uRS = _smoothedUserLandmarks!['right_shoulder'];
+        final uLH = _smoothedUserLandmarks!['left_hip'];
+        final uRH = _smoothedUserLandmarks!['right_hip'];
+        final uLE = _smoothedUserLandmarks!['left_ear'];
+        final uRE = _smoothedUserLandmarks!['right_ear'];
+        final uNose = _smoothedUserLandmarks!['nose'];
+
+        final hasShoulders = tLS != null && tRS != null && uLS != null && uRS != null;
+        final hasHips = tLH != null && tRH != null && uLH != null && uRH != null;
+        final hasEars = tLE != null && tRE != null && uLE != null && uRE != null;
+        final hasNose = tNose != null && uNose != null;
+
+        double? tRefSize, uRefSize;
+        double? tCenterX, tCenterY, uCenterX, uCenterY;
+
+        if (hasEars && hasNose && (mapLm(uRE!).dx - mapLm(uLE!).dx).abs() > 20.0) {
+          tRefSize = (tRE!.x - tLE!.x).abs() * vbW;
+          tCenterX = tNose!.x * vbW;
+          tCenterY = tNose.y * vbH;
+
+          final mLE = mapLm(uLE!);
+          final mRE = mapLm(uRE!);
+          final mNose = mapLm(uNose!);
+          uRefSize = (mRE.dx - mLE.dx).abs();
+          uCenterX = mNose.dx;
+          uCenterY = mNose.dy;
+        } else if (hasNose && hasShoulders) {
+          // Highly stable scale: diagonal of shoulder width and neck height.
+          // Anchor: Nose (so the head matches perfectly like a filter).
+          final tSCx = (tLS!.x + tRS!.x) / 2 * vbW;
+          final tSCy = (tLS.y + tRS.y) / 2 * vbH;
+          final tShW = (tRS.x - tLS.x).abs() * vbW;
+          final tToN = (tSCy - tNose!.y * vbH).abs();
+          tRefSize = sqrt(tShW * tShW + tToN * tToN);
+          tCenterX = tNose.x * vbW;
+          tCenterY = tNose.y * vbH;
+
+          final mLS = mapLm(uLS!);
+          final mRS = mapLm(uRS!);
+          final mNose = mapLm(uNose!);
+          final uSCx = (mLS.dx + mRS.dx) / 2;
+          final uSCy = (mLS.dy + mRS.dy) / 2;
+          final uShW = (mRS.dx - mLS.dx).abs();
+          final uToN = (uSCy - mNose.dy).abs();
+          uRefSize = sqrt(uShW * uShW + uToN * uToN);
+          uCenterX = mNose.dx;
+          uCenterY = mNose.dy;
+        } else if (hasShoulders && hasHips) {
+          final tSCx = (tLS!.x + tRS!.x) / 2 * vbW;
+          final tSCy = (tLS.y + tRS.y) / 2 * vbH;
+          final tHCx = (tLH!.x + tRH!.x) / 2 * vbW;
+          final tHCy = (tLH.y + tRH.y) / 2 * vbH;
+          final tShW = (tRS.x - tLS.x).abs() * vbW;
+          final tToH = (tHCy - tSCy).abs();
+          tRefSize = sqrt(tShW * tShW + tToH * tToH);
+          tCenterX = (tSCx + tHCx) / 2;
+          tCenterY = (tSCy + tHCy) / 2;
+
+          final mLS = mapLm(uLS!);
+          final mRS = mapLm(uRS!);
+          final mLH = mapLm(uLH!);
+          final mRH = mapLm(uRH!);
+
+          final uSCx = (mLS.dx + mRS.dx) / 2;
+          final uSCy = (mLS.dy + mRS.dy) / 2;
+          final uHCx = (mLH.dx + mRH.dx) / 2;
+          final uHCy = (mLH.dy + mRH.dy) / 2;
+          final uShW = (mRS.dx - mLS.dx).abs();
+          final uToH = (uHCy - uSCy).abs();
+          uRefSize = sqrt(uShW * uShW + uToH * uToH);
+          uCenterX = (uSCx + uHCx) / 2;
+          uCenterY = (uSCy + uHCy) / 2;
+        } else if (hasShoulders) {
+          tRefSize = (tRS!.x - tLS!.x).abs() * vbW;
+          tCenterX = (tLS.x + tRS.x) / 2 * vbW;
+          tCenterY = (tLS.y + tRS.y) / 2 * vbH;
+
+          final mLS = mapLm(uLS!);
+          final mRS = mapLm(uRS!);
+          uRefSize = (mRS.dx - mLS.dx).abs();
+          uCenterX = (mLS.dx + mRS.dx) / 2;
+          uCenterY = (mLS.dy + mRS.dy) / 2;
+        } else if (hasHips) {
+          tRefSize = (tRH!.x - tLH!.x).abs() * vbW;
+          tCenterX = (tLH.x + tRH.x) / 2 * vbW;
+          tCenterY = (tLH.y + tRH.y) / 2 * vbH;
+
+          final mLH = mapLm(uLH!);
+          final mRH = mapLm(uRH!);
+          uRefSize = (mRH.dx - mLH.dx).abs();
+          uCenterX = (mLH.dx + mRH.dx) / 2;
+          uCenterY = (mLH.dy + mRH.dy) / 2;
+        } else if (hasEars) {
+          tRefSize = (tRE!.x - tLE!.x).abs() * vbW;
+          tCenterX = (tLE.x + tRE.x) / 2 * vbW;
+          tCenterY = (tLE.y + tRE.y) / 2 * vbH;
+
+          final mLE = mapLm(uLE!);
+          final mRE = mapLm(uRE!);
+          uRefSize = (mRE.dx - mLE.dx).abs();
+          uCenterX = (mLE.dx + mRE.dx) / 2;
+          uCenterY = (mLE.dy + mRE.dy) / 2;
+        } else if (hasNose) {
+          tRefSize = vbH;
+          tCenterX = tNose!.x * vbW;
+          tCenterY = tNose.y * vbH;
+
+          final mNose = mapLm(uNose!);
+          uRefSize = screenSize.height * 0.85;
+          uCenterX = mNose.dx;
+          uCenterY = mNose.dy;
+        }
+
+        if (tRefSize != null && tRefSize > 0 &&
+            uRefSize != null && uRefSize > 0) {
+          final scale = uRefSize / tRefSize;
+
+          transform = Matrix4.identity()
+            ..translate(uCenterX!, uCenterY!)
+            ..rotateZ(angle)
+            ..scale(scale, scale)
+            ..translate(-tCenterX!, -tCenterY!);
+          tracksUser = true;
+        }
       }
+
+      // Default static position if no user detected
+      if (!tracksUser) {
+        // Fit within 85% of height and 85% of width to prevent cutoff
+        final scaleY = screenSize.height * 0.85 / vbH;
+        final scaleX = screenSize.width * 0.85 / vbW;
+        final scale = (scaleX < scaleY) ? scaleX : scaleY;
+        
+        transform = Matrix4.identity()
+          ..translate(screenSize.width / 2.0, screenSize.height / 2.0)
+          ..rotateZ(angle)
+          ..scale(scale)
+          ..translate(-vbW / 2.0, -vbH / 2.0);
+      }
+    }
+
+    Path? finalPath;
+    if (_baseSilhouettePath != null) {
+      finalPath = _baseSilhouettePath!.transform(transform.storage);
     }
 
     return IgnorePointer(
       child: SizedBox.expand(
-        child: CustomPaint(
-          painter: PoseOverlayPainter(
-            silhouettePath: _cachedNormalizedSilhouette,
-            transform: _transform,
-            score: score,
-            overlayOpacity: overlayOpacity,
+        child: AnimatedBuilder(
+          animation: _drawController,
+          builder: (context, child) => CustomPaint(
+            painter: PoseOverlayPainter(
+              silhouettePath: finalPath,
+              score: score,
+              overlayOpacity: overlayOpacity,
+              drawProgress: _drawController.value,
+            ),
           ),
         ),
       ),
@@ -654,132 +829,6 @@ class _LastPhotoThumbnail extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Auto-capture toggle button
-// ---------------------------------------------------------------------------
 
-class _AutoCaptureToggle extends ConsumerWidget {
-  const _AutoCaptureToggle();
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final enabled = ref.watch(autoCaptureEnabledProvider);
-    return GestureDetector(
-      onTap: () => ref.read(autoCaptureEnabledProvider.notifier).toggle(),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: enabled
-              ? Colors.white.withValues(alpha: 0.9)
-              : Colors.white.withValues(alpha: 0.12),
-          border: Border.all(
-            color: enabled ? Colors.transparent : Colors.white38,
-            width: 1.5,
-          ),
-        ),
-        child: Icon(
-          Icons.timer_outlined,
-          color: enabled ? Colors.black : Colors.white70,
-          size: 24,
-        ),
-      ),
-    );
-  }
-}
 
-// ---------------------------------------------------------------------------
-// Countdown overlay — shown centre-screen during auto-capture
-// ---------------------------------------------------------------------------
-
-class _CountdownOverlay extends StatelessWidget {
-  final int value;
-  const _CountdownOverlay({required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Center(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          transitionBuilder: (child, animation) => ScaleTransition(
-            scale: Tween<double>(begin: 1.5, end: 1.0).animate(
-              CurvedAnimation(parent: animation, curve: Curves.easeOut),
-            ),
-            child: FadeTransition(opacity: animation, child: child),
-          ),
-          child: Text(
-            '$value',
-            key: ValueKey(value),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 120,
-              fontWeight: FontWeight.w700,
-              shadows: [Shadow(color: Colors.black54, blurRadius: 24)],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Adapts reference pose landmarks to match the user's detected body scale and
-// position. Runs in build() rather than paint() to avoid per-frame allocation.
-// Primary anchor: hip centre + torso height.
-// Fallback: shoulder centre + shoulder width (upper-body-only detection).
-// Returns null when insufficient landmarks are available.
-// ---------------------------------------------------------------------------
-
-Matrix4? _getAdaptationMatrix(
-  Map<String, PoseLandmark> reference,
-  Map<String, PoseLandmark>? user,
-) {
-  if (user == null || user.isEmpty) return null;
-
-  final uLS = user['left_shoulder'], uRS = user['right_shoulder'];
-  final uLH = user['left_hip'], uRH = user['right_hip'];
-  final rLS = reference['left_shoulder'], rRS = reference['right_shoulder'];
-  final rLH = reference['left_hip'], rRH = reference['right_hip'];
-
-  if (uLS != null && uRS != null && uLH != null && uRH != null &&
-      rLS != null && rRS != null && rLH != null && rRH != null) {
-    final uHip = Offset((uLH.x + uRH.x) / 2, (uLH.y + uRH.y) / 2);
-    final uSh = Offset((uLS.x + uRS.x) / 2, (uLS.y + uRS.y) / 2);
-    final rHip = Offset((rLH.x + rRH.x) / 2, (rLH.y + rRH.y) / 2);
-    final rSh = Offset((rLS.x + rRS.x) / 2, (rLS.y + rRS.y) / 2);
-    final uTorso = (uSh - uHip).distance;
-    final rTorso = (rSh - rHip).distance;
-
-    if (uTorso > 0.03 && rTorso > 0.001) {
-      final s = uTorso / rTorso;
-      // We only need the translation to align the user's hip with the reference hip's scaled position
-      final tx = uHip.dx - (rHip.dx * s);
-      final ty = uHip.dy - (rHip.dy * s);
-      return Matrix4.identity()
-        ..translate(tx, ty)
-        ..scale(s, s);
-    }
-  }
-
-  if (uLS != null && uRS != null && rLS != null && rRS != null) {
-    final uCx = (uLS.x + uRS.x) / 2, uCy = (uLS.y + uRS.y) / 2;
-    final rCx = (rLS.x + rRS.x) / 2, rCy = (rLS.y + rRS.y) / 2;
-    final uW = (Offset(uLS.x, uLS.y) - Offset(uRS.x, uRS.y)).distance;
-    final rW = (Offset(rLS.x, rLS.y) - Offset(rRS.x, rRS.y)).distance;
-
-    if (uW > 0.03 && rW > 0.001) {
-      final s = uW / rW;
-      final tx = uCx - (rCx * s);
-      final ty = uCy - (rCy * s);
-      return Matrix4.identity()
-        ..translate(tx, ty)
-        ..scale(s, s);
-    }
-  }
-
-  return null;
-}

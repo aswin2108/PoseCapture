@@ -35,6 +35,8 @@ class PoseTemplate {
   final PoseCategory category;
   final String camera;
   final String difficulty;
+  final String svgPath;
+  final String svgViewBox;
   final Map<String, PoseLandmark> landmarks;
 
   const PoseTemplate({
@@ -43,6 +45,8 @@ class PoseTemplate {
     required this.category,
     required this.camera,
     required this.difficulty,
+    required this.svgPath,
+    required this.svgViewBox,
     required this.landmarks,
   });
 
@@ -50,13 +54,15 @@ class PoseTemplate {
     Map<String, dynamic> json,
     PoseCategory category,
   ) {
-    final landmarksJson = json['landmarks'] as Map<String, dynamic>;
+    final landmarksJson = json['landmarks'] as Map<String, dynamic>? ?? {};
     return PoseTemplate(
       id: json['id'] as String,
       name: json['name'] as String,
       category: category,
       camera: (json['camera'] as String?) ?? 'both',
       difficulty: (json['difficulty'] as String?) ?? 'easy',
+      svgPath: (json['svgPath'] as String?) ?? '',
+      svgViewBox: (json['svgViewBox'] as String?) ?? '0 0 100 100',
       landmarks: landmarksJson.map(
         (k, v) => MapEntry(k, PoseLandmark.fromJson(v as Map<String, dynamic>)),
       ),

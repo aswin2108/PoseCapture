@@ -2,34 +2,34 @@ import 'package:flutter/material.dart';
 
 class PoseOverlayPainter extends CustomPainter {
   final Path? silhouettePath;
-  final Matrix4? transform;
   final double score;
   final double overlayOpacity;
+  final double drawProgress;
 
   const PoseOverlayPainter({
     this.silhouettePath,
-    this.transform,
     this.score = 0.0,
     this.overlayOpacity = 1.0,
+    this.drawProgress = 1.0,
   });
 
-  static const _kCyan = Color(0xFF00E5FF);
   static const _kGreen = Color(0xFF69F0AE);
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (silhouettePath == null || transform == null) return;
+    if (silhouettePath == null) return;
 
     final op = overlayOpacity.clamp(0.0, 1.0);
-    if (op == 0.0) return;
+    if (op == 0.0 || drawProgress == 0.0) return;
 
-    // Apply the adaptation transform (normalized space -> user's screen space)
-    final userPath = silhouettePath!.transform(transform!.storage);
+    Path finalPath = silhouettePath!;
 
-    // Scale to the actual canvas pixel size (since coordinates were 0..1)
-    final screenScaleMatrix = Matrix4.identity()
-      ..scale(size.width, size.height);
-    final finalPath = userPath.transform(screenScaleMatrix.storage);
+    final animatedPath = Path();
+    for (final metric in finalPath.computeMetrics()) {
+      final extractLength = metric.length * drawProgress;
+      animatedPath.addPath(metric.extractPath(0.0, extractLength), Offset.zero);
+    }
+    finalPath = animatedPath;
 
     // Determine whole-silhouette color based on the score
     // Huawei UI: transitions from white to a vibrant match color
@@ -62,7 +62,8 @@ class PoseOverlayPainter extends CustomPainter {
   @override
   bool shouldRepaint(PoseOverlayPainter old) =>
       silhouettePath != old.silhouettePath ||
-      transform != old.transform ||
       score != old.score ||
-      overlayOpacity != old.overlayOpacity;
+      overlayOpacity != old.overlayOpacity ||
+      drawProgress != old.drawProgress;
 }
+

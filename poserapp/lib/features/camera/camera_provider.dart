@@ -205,7 +205,7 @@ class CameraControllerNotifier extends AsyncNotifier<CameraController> {
     if (controller.value.isTakingPicture) return;
 
     try {
-      // Stop stream → take picture → restart stream
+      // Stop stream → take picture
       if (controller.value.isStreamingImages) {
         await controller.stopImageStream();
       }
@@ -213,18 +213,24 @@ class CameraControllerNotifier extends AsyncNotifier<CameraController> {
       if (_disposed) return;
       final file = await controller.takePicture();
 
-      if (!_disposed && !controller.value.isStreamingImages) {
-        await controller.startImageStream(_onFrame);
-      }
-
       if (_galAccessGranted != true) {
         _galAccessGranted = await Gal.requestAccess();
       }
-      if (_galAccessGranted != true) return;
-      await Gal.putImage(file.path);
-      ref.read(lastPhotoProvider.notifier).set(file.path);
+      if (_galAccessGranted == true) {
+        await Gal.putImage(file.path);
+        ref.read(lastPhotoProvider.notifier).set(file.path);
+      }
     } catch (e) {
       debugPrint('capture: $e');
+    } finally {
+      // ALWAYS restart the image stream, even if takePicture or saving fails
+      if (!_disposed && controller.value.isInitialized && !controller.value.isStreamingImages) {
+        try {
+          await controller.startImageStream(_onFrame);
+        } catch (e) {
+          debugPrint('Failed to restart camera stream: $e');
+        }
+      }
     }
   }
 }
