@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math' show pi, sqrt;
+import 'dart:math' show pi, sqrt, atan2;
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -533,7 +533,7 @@ class _PoseOverlayState extends ConsumerState<_PoseOverlay> with SingleTickerPro
     final overlayOpacity = ref.watch(overlayOpacityProvider);
     final screenSize = MediaQuery.of(context).size;
 
-    // Determine rotation angle from device orientation
+    // Determine rotation angle from device orientation (so the template rotates when phone is in landscape)
     double angle = 0.0;
     if (widget.deviceOrientation == DeviceOrientation.landscapeLeft) {
       angle = pi / 2; // 90 degrees
@@ -552,9 +552,9 @@ class _PoseOverlayState extends ConsumerState<_PoseOverlay> with SingleTickerPro
       if (referencePose != null && referencePose.svgPath.isNotEmpty) {
         try {
           _baseSilhouettePath = parseSvgPathData(referencePose.svgPath);
-          _drawController.forward(from: 0.0);
+          _drawController.forward();
         } catch (e) {
-          debugPrint('Failed to parse SVG path: $e');
+          debugPrint('Error parsing SVG path: $e');
         }
       }
     }
@@ -584,21 +584,17 @@ class _PoseOverlayState extends ConsumerState<_PoseOverlay> with SingleTickerPro
       _smoothedUserLandmarks = null;
     }
 
-    // 3. Calculate Transform to Track User
+    // 3. Transform Path to Match User
     Matrix4 transform = Matrix4.identity();
     if (_baseSilhouettePath != null && referencePose != null) {
-      // Parse viewBox e.g. "0 0 100 100"
-      final vbParts = referencePose.svgViewBox.split(' ').map(double.tryParse).toList();
-      double vbW = 100;
-      double vbH = 100;
-      if (vbParts.length == 4 && vbParts[2] != null && vbParts[3] != null) {
-        vbW = vbParts[2]!;
-        vbH = vbParts[3]!;
-      }
+      final vb = referencePose.svgViewBox;
+      final vbParts = vb.split(' ').map(double.parse).toList();
+      final vbW = vbParts.length == 4 ? vbParts[2] : 100.0;
+      final vbH = vbParts.length == 4 ? vbParts[3] : 100.0;
 
       bool tracksUser = false;
+
       if (_smoothedUserLandmarks != null && widget.previewSize != null) {
-        // Calculate BoxFit.cover mapping from preview to screen space
         final double previewW = widget.previewSize!.height; // swapped for portrait
         final double previewH = widget.previewSize!.width;
         final double screenRatio = screenSize.width / screenSize.height;
@@ -621,52 +617,68 @@ class _PoseOverlayState extends ConsumerState<_PoseOverlay> with SingleTickerPro
           return Offset(lm.x * scaleX + offsetX, lm.y * scaleY + offsetY);
         }
 
-        // ---------------------------------------------------------------
-        // Tracking Logic: Try Torso first, then fall back to Shoulders,
-        // then Hips, then Face (Ears/Nose).
-        // ---------------------------------------------------------------
-        final tLS = referencePose.landmarks['left_shoulder'];
-        final tRS = referencePose.landmarks['right_shoulder'];
-        final tLH = referencePose.landmarks['left_hip'];
-        final tRH = referencePose.landmarks['right_hip'];
-        final tLE = referencePose.landmarks['left_ear'];
-        final tRE = referencePose.landmarks['right_ear'];
-        final tNose = referencePose.landmarks['nose'];
+        final tLm = referencePose.landmarks;
+        final uLm = _smoothedUserLandmarks!;
 
-        final uLS = _smoothedUserLandmarks!['left_shoulder'];
-        final uRS = _smoothedUserLandmarks!['right_shoulder'];
-        final uLH = _smoothedUserLandmarks!['left_hip'];
-        final uRH = _smoothedUserLandmarks!['right_hip'];
-        final uLE = _smoothedUserLandmarks!['left_ear'];
-        final uRE = _smoothedUserLandmarks!['right_ear'];
-        final uNose = _smoothedUserLandmarks!['nose'];
+        final tNose = tLm['nose'];
+        final tLE = tLm['left_ear'];
+        final tRE = tLm['right_ear'];
+        final tLS = tLm['left_shoulder'];
+        final tRS = tLm['right_shoulder'];
+        final tLH = tLm['left_hip'];
+        final tRH = tLm['right_hip'];
 
+        final uNose = uLm['nose'];
+        final uLE = uLm['left_ear'];
+        final uRE = uLm['right_ear'];
+        final uLS = uLm['left_shoulder'];
+        final uRS = uLm['right_shoulder'];
+        final uLH = uLm['left_hip'];
+        final uRH = uLm['right_hip'];
+
+        final hasNose = tNose != null && uNose != null;
+        final hasEars = tLE != null && tRE != null && uLE != null && uRE != null;
         final hasShoulders = tLS != null && tRS != null && uLS != null && uRS != null;
         final hasHips = tLH != null && tRH != null && uLH != null && uRH != null;
-        final hasEars = tLE != null && tRE != null && uLE != null && uRE != null;
-        final hasNose = tNose != null && uNose != null;
 
         double? tRefSize, uRefSize;
         double? tCenterX, tCenterY, uCenterX, uCenterY;
 
-        if (hasEars && hasNose && (mapLm(uRE!).dx - mapLm(uLE!).dx).abs() > 20.0) {
-          tRefSize = (tRE!.x - tLE!.x).abs() * vbW;
-          tCenterX = tNose!.x * vbW;
-          tCenterY = tNose.y * vbH;
-
+        if (hasEars && hasNose) {
           final mLE = mapLm(uLE!);
           final mRE = mapLm(uRE!);
           final mNose = mapLm(uNose!);
-          uRefSize = (mRE.dx - mLE.dx).abs();
-          uCenterX = mNose.dx;
-          uCenterY = mNose.dy;
-        } else if (hasNose && hasShoulders) {
-          // Highly stable scale: diagonal of shoulder width and neck height.
-          // Anchor: Nose (so the head matches perfectly like a filter).
+          
+          final dxU = mRE.dx - mLE.dx;
+          final dyU = mRE.dy - mLE.dy;
+          final headDist = sqrt(dxU * dxU + dyU * dyU);
+
+          if (headDist > 20.0) {
+            final dxT = (tRE!.x - tLE!.x) * vbW;
+            final dyT = (tRE.y - tLE.y) * vbH;
+            tRefSize = sqrt(dxT * dxT + dyT * dyT);
+            tCenterX = tNose!.x * vbW;
+            tCenterY = tNose.y * vbH;
+
+            // Multiply ear distance by 1.25 because ML Kit ear landmarks are inner ear canals, 
+            // but the template outline encompasses the full outer head width.
+            uRefSize = headDist * 1.25;
+            uCenterX = mNose.dx;
+            uCenterY = mNose.dy;
+          }
+        }
+        
+        if (tRefSize == null && hasNose && hasShoulders) {
           final tSCx = (tLS!.x + tRS!.x) / 2 * vbW;
           final tSCy = (tLS.y + tRS.y) / 2 * vbH;
-          final tShW = (tRS.x - tLS.x).abs() * vbW;
-          final tToN = (tSCy - tNose!.y * vbH).abs();
+          
+          final dxT_S = (tRS.x - tLS.x) * vbW;
+          final dyT_S = (tRS.y - tLS.y) * vbH;
+          final tShW = sqrt(dxT_S * dxT_S + dyT_S * dyT_S);
+          
+          final dxT_N = tSCx - tNose!.x * vbW;
+          final dyT_N = tSCy - tNose.y * vbH;
+          final tToN = sqrt(dxT_N * dxT_N + dyT_N * dyT_N);
           tRefSize = sqrt(tShW * tShW + tToN * tToN);
           tCenterX = tNose.x * vbW;
           tCenterY = tNose.y * vbH;
@@ -676,18 +688,33 @@ class _PoseOverlayState extends ConsumerState<_PoseOverlay> with SingleTickerPro
           final mNose = mapLm(uNose!);
           final uSCx = (mLS.dx + mRS.dx) / 2;
           final uSCy = (mLS.dy + mRS.dy) / 2;
-          final uShW = (mRS.dx - mLS.dx).abs();
-          final uToN = (uSCy - mNose.dy).abs();
+          
+          final dxU_S = mRS.dx - mLS.dx;
+          final dyU_S = mRS.dy - mLS.dy;
+          final uShW = sqrt(dxU_S * dxU_S + dyU_S * dyU_S);
+          
+          final dxU_N = uSCx - mNose.dx;
+          final dyU_N = uSCy - mNose.dy;
+          final uToN = sqrt(dxU_N * dxU_N + dyU_N * dyU_N);
+          
           uRefSize = sqrt(uShW * uShW + uToN * uToN);
           uCenterX = mNose.dx;
           uCenterY = mNose.dy;
-        } else if (hasShoulders && hasHips) {
+        } 
+        
+        if (tRefSize == null && hasShoulders && hasHips) {
           final tSCx = (tLS!.x + tRS!.x) / 2 * vbW;
           final tSCy = (tLS.y + tRS.y) / 2 * vbH;
           final tHCx = (tLH!.x + tRH!.x) / 2 * vbW;
           final tHCy = (tLH.y + tRH.y) / 2 * vbH;
-          final tShW = (tRS.x - tLS.x).abs() * vbW;
-          final tToH = (tHCy - tSCy).abs();
+          
+          final dxT_S = (tRS.x - tLS.x) * vbW;
+          final dyT_S = (tRS.y - tLS.y) * vbH;
+          final tShW = sqrt(dxT_S * dxT_S + dyT_S * dyT_S);
+          
+          final dxT_H = tHCx - tSCx;
+          final dyT_H = tHCy - tSCy;
+          final tToH = sqrt(dxT_H * dxT_H + dyT_H * dyT_H);
           tRefSize = sqrt(tShW * tShW + tToH * tToH);
           tCenterX = (tSCx + tHCx) / 2;
           tCenterY = (tSCy + tHCy) / 2;
@@ -701,42 +728,69 @@ class _PoseOverlayState extends ConsumerState<_PoseOverlay> with SingleTickerPro
           final uSCy = (mLS.dy + mRS.dy) / 2;
           final uHCx = (mLH.dx + mRH.dx) / 2;
           final uHCy = (mLH.dy + mRH.dy) / 2;
-          final uShW = (mRS.dx - mLS.dx).abs();
-          final uToH = (uHCy - uSCy).abs();
+          
+          final dxU_S = mRS.dx - mLS.dx;
+          final dyU_S = mRS.dy - mLS.dy;
+          final uShW = sqrt(dxU_S * dxU_S + dyU_S * dyU_S);
+          
+          final dxU_H = uHCx - uSCx;
+          final dyU_H = uHCy - uSCy;
+          final uToH = sqrt(dxU_H * dxU_H + dyU_H * dyU_H);
+          
           uRefSize = sqrt(uShW * uShW + uToH * uToH);
           uCenterX = (uSCx + uHCx) / 2;
           uCenterY = (uSCy + uHCy) / 2;
-        } else if (hasShoulders) {
-          tRefSize = (tRS!.x - tLS!.x).abs() * vbW;
+        } 
+        
+        if (tRefSize == null && hasShoulders) {
+          final dxT = (tRS!.x - tLS!.x) * vbW;
+          final dyT = (tRS.y - tLS.y) * vbH;
+          tRefSize = sqrt(dxT * dxT + dyT * dyT);
           tCenterX = (tLS.x + tRS.x) / 2 * vbW;
           tCenterY = (tLS.y + tRS.y) / 2 * vbH;
 
           final mLS = mapLm(uLS!);
           final mRS = mapLm(uRS!);
-          uRefSize = (mRS.dx - mLS.dx).abs();
+          final dxU = mRS.dx - mLS.dx;
+          final dyU = mRS.dy - mLS.dy;
+          uRefSize = sqrt(dxU * dxU + dyU * dyU);
           uCenterX = (mLS.dx + mRS.dx) / 2;
           uCenterY = (mLS.dy + mRS.dy) / 2;
-        } else if (hasHips) {
-          tRefSize = (tRH!.x - tLH!.x).abs() * vbW;
+        } 
+        
+        if (tRefSize == null && hasHips) {
+          final dxT = (tRH!.x - tLH!.x) * vbW;
+          final dyT = (tRH.y - tLH.y) * vbH;
+          tRefSize = sqrt(dxT * dxT + dyT * dyT);
           tCenterX = (tLH.x + tRH.x) / 2 * vbW;
           tCenterY = (tLH.y + tRH.y) / 2 * vbH;
 
           final mLH = mapLm(uLH!);
           final mRH = mapLm(uRH!);
-          uRefSize = (mRH.dx - mLH.dx).abs();
+          final dxU = mRH.dx - mLH.dx;
+          final dyU = mRH.dy - mLH.dy;
+          uRefSize = sqrt(dxU * dxU + dyU * dyU);
           uCenterX = (mLH.dx + mRH.dx) / 2;
           uCenterY = (mLH.dy + mRH.dy) / 2;
-        } else if (hasEars) {
-          tRefSize = (tRE!.x - tLE!.x).abs() * vbW;
+        } 
+        
+        if (tRefSize == null && hasEars) {
+          final dxT = (tRE!.x - tLE!.x) * vbW;
+          final dyT = (tRE.y - tLE.y) * vbH;
+          tRefSize = sqrt(dxT * dxT + dyT * dyT);
           tCenterX = (tLE.x + tRE.x) / 2 * vbW;
           tCenterY = (tLE.y + tRE.y) / 2 * vbH;
 
           final mLE = mapLm(uLE!);
           final mRE = mapLm(uRE!);
-          uRefSize = (mRE.dx - mLE.dx).abs();
+          final dxU = mRE.dx - mLE.dx;
+          final dyU = mRE.dy - mLE.dy;
+          uRefSize = sqrt(dxU * dxU + dyU * dyU) * 1.25;
           uCenterX = (mLE.dx + mRE.dx) / 2;
           uCenterY = (mLE.dy + mRE.dy) / 2;
-        } else if (hasNose) {
+        }
+        
+        if (tRefSize == null && hasNose) {
           tRefSize = vbH;
           tCenterX = tNose!.x * vbW;
           tCenterY = tNose.y * vbH;
